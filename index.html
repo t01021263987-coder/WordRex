@@ -2,288 +2,481 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>WordRex - Vocabulary Master</title>
+    <title>WordRex - Master</title>
     <style>
-        :root { --wm-yellow: #FFD400; --wm-navy: #004680; --wm-red: #ff4d4d; --wm-green: #28a745; --wm-blue: #2196F3; }
-        body { margin: 0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; background: #f4f4f4; font-family: 'Pretendard', sans-serif; }
-
-        /* 상단 진행률 */
-        #progress-box { position: fixed; top: 20px; left: 20px; font-size: 1.5rem; font-weight: bold; color: var(--wm-navy); z-index: 50; display: none; }
-
-        /* 타임 바 */
-        #time-bar-container { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); width: 20px; height: 300px; background: #ddd; border-radius: 10px; overflow: hidden; display: none; }
-        #time-bar-fill { width: 100%; height: 100%; background: var(--wm-red); position: absolute; top: 0; }
-
-        /* 레이아웃 제어 */
-        #setup-screen, #test-screen, #result-screen, #ranking-screen, #wrong-note-screen { width: 100%; max-width: 500px; text-align: center; display: none; }
-        #main-menu { display: block; text-align: center; }
-
-        /* 단어장 표지 (버그 수정: 배경색 추가 및 디자인 보강) */
-        .book-card { 
-            width: 280px; height: 400px; margin: auto; position: relative; border-radius: 15px; 
-            overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            background: var(--wm-navy); /* 기본 배경색 */
-            background-image: url('cover.png'); 
-            background-size: cover; background-position: center;
-            cursor: pointer; 
+        :root { 
+            --wm-yellow: #FFD400; --wm-navy: #004680; --wm-red: #ff4d4d; 
+            --wm-green: #28a745; --wm-blue: #2196F3;
         }
-        .book-card .cover-content {
-            position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; color: white;
+        body { margin: 0; height: 100vh; display: flex; background: #f4f4f4; font-family: 'Pretendard', sans-serif; overflow: hidden; }
+
+        #main-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; width: 100%; height: 100%; }
+
+        /* 홈 화면 슬라이더 */
+        #main-menu { display: block; text-align: center; width: 100%; }
+        .slider-wrapper { 
+            position: relative; width: 1000px; margin: 0 auto; 
+            display: flex; align-items: center; justify-content: center; height: 500px; 
         }
+     
+        /* 결과 화면 버튼 스타일 통일 */
+.secondary-btn { 
+    width: 100%; padding: 18px; margin-top: 10px; border: 2px solid var(--wm-navy); 
+    border-radius: 12px; font-size: 1.2rem; cursor: pointer; 
+    background: white; color: var(--wm-navy); font-weight: bold; transition: 0.2s;
+}
+.secondary-btn:hover { background: #f0f7ff; }
+
+/* 오답 리스트 화면 스타일 */
+#review-screen { width: 100%; max-width: 500px; text-align: center; display: none; padding: 20px; z-index: 10; }
+.review-container { 
+    background: white; padding: 30px; border-radius: 25px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; 
+    margin-bottom: 20px; text-align: left;
+}
+.review-item { 
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 0; border-bottom: 1px solid #eee; 
+}
+.review-item:last-child { border-bottom: none; }
+.review-eng { font-size: 1.4rem; font-weight: bold; color: var(--wm-navy); }
+.review-kor { font-size: 1.1rem; color: #666; }
+
+/* 하단 버튼 그룹 */
+.btn-group { display: flex; gap: 10px; margin-top: 10px; }
+.half-btn { flex: 1; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; border: none; font-size: 1rem; }
+.btn-home { background: #eee; color: #333; }
+.btn-retry { background: var(--wm-red); color: white; }
+        
+        .book-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+
+        .book-card {
+    width: 280px;
+    height: 400px;
+    position: absolute;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+
+    transition:
+        transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.5s ease;
+    will-change: transform;
+
+    opacity: 0;
+    transform: scale(0.5);
+    z-index: 0;
+}
+
+        /* 카드 간격 및 레이아웃 */
+        .book-card.active { opacity: 1; transform: scale(1) translateX(0); z-index: 10; pointer-events: auto; }
+        .book-card.prev { opacity: 1; transform: scale(0.8) translateX(-380px); z-index: 5; pointer-events: auto; }
+        .book-card.next { opacity: 1; transform: scale(0.8) translateX(380px); z-index: 5; pointer-events: auto; }
+
         .book-card .overlay { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; 
-            color: white; padding: 20px; box-sizing: border-box; z-index: 2;
+            background: rgba(0, 70, 128, 0.95); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; color: white; padding: 25px; 
+            box-sizing: border-box; opacity: 0; transition: opacity 0.3s ease; 
         }
-        .book-card:hover .overlay { opacity: 1; }
+        .book-card:hover .overlay {opacity: 1;}
+
+        .overlay h3 { color: var(--wm-yellow); margin: 10px 0; font-size: 1.5rem; }
+        .stars { color: #FFD400; margin-bottom: 10px; font-size: 1.2rem; }
+        .start-badge { background: var(--wm-yellow); color: var(--wm-navy); padding: 10px 20px; border-radius: 25px; font-weight: bold; margin-top: 20px; }
+
+        .slide-btn { 
+            position: absolute; top: 50%; transform: translateY(-50%); 
+            background: white; border: none; width: 55px; height: 55px; border-radius: 50%; 
+            cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.1); font-size: 1.8rem; z-index: 100;
+        }
+        .prev-btn { left: 0; }
+        .next-btn { right: 0; }
 
         /* 퀴즈 UI */
-        .quiz-container { background: white; padding: 40px; border-radius: 25px; border-top: 10px solid var(--wm-yellow); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .word-eng { font-size: 3.5rem; color: var(--wm-navy); margin-bottom: 20px; }
-        .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .opt-btn { padding: 15px; border: none; background: #f0f0f0; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: bold; transition: 0.2s; }
-        .opt-btn:disabled { opacity: 0.3; }
+        #setup-screen, #test-screen, #result-screen { width: 100%; max-width: 500px; text-align: center; display: none; padding: 20px; z-index: 10; }
+        .quiz-container { background: white; padding: 40px 30px; border-radius: 25px; border-top: 10px solid var(--wm-yellow); box-shadow: 0 10px 20px rgba(0,0,0,0.05); position: relative; }
+        #feedback-layer { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); opacity: 0; transition: 0.2s; width: 100%; }
+        #feedback-img { width: 150px; }
+        .word-eng { font-size: 3.5rem; color: var(--wm-navy); font-weight: bold; margin-bottom: 25px; }
+        .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .opt-btn { padding: 15px; border: 3px solid transparent; background: #f8f8f8; border-radius: 12px; cursor: pointer; font-size: 1.1rem; font-weight: bold; }
+        .action-btn { width: 100%; padding: 18px; margin-top: 15px; border: none; border-radius: 12px; font-size: 1.2rem; cursor: pointer; background: var(--wm-navy); color: white; font-weight: bold; }
+        
+        #progress-box { position: fixed; top: 20px; right: 20px; font-size: 1.5rem; font-weight: bold; display: none; color: var(--wm-navy); }
+        #time-bar-container { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); width: 15px; height: 300px; background: #ddd; border-radius: 10px; overflow: hidden; display: none; }
+        #time-bar-fill { width: 100%; height: 0%; background: var(--wm-red); position: absolute; top: 0; }
+        #countdown { position: fixed; display: none; font-size: 10rem; color: var(--wm-yellow); font-weight: 900; z-index: 200; text-shadow: 8px 8px 0px var(--wm-navy); }
+#countdown { 
+            position: fixed; display: none; font-size: 10rem; 
+            color: var(--wm-yellow); font-weight: 900; z-index: 200; 
+            text-shadow: 8px 8px 0px var(--wm-navy); 
+        }
 
-        /* 카운트다운 */
-        #countdown { position: fixed; display: none; font-size: 10rem; color: var(--wm-yellow); font-weight: 900; text-shadow: 8px 8px 0px var(--wm-navy), -4px -4px 0px var(--wm-navy); z-index: 200; }
+        /* 여기에 추가하세요! */
+        .btn-retry:hover {
+            background: #e63939; 
+            transform: translateY(-2px);
+            transition: all 0.2s;
+        }
 
-        /* 피드백 레이어 */
-        #feedback-layer { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; z-index: 100; text-align: center; }
-        #feedback-points { font-size: 4.5rem; font-weight: 900; }
+        .btn-home:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+            transition: all 0.2s;
+        }
 
-        /* 버튼류 */
-        .action-btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 12px; font-size: 1.3rem; cursor: pointer; background: white; color: var(--wm-navy); font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.2s; }
-        .action-btn:hover { background: var(--wm-yellow); }
-        .rank-go-btn { background: var(--wm-blue); color: white; }
-        .wrong-go-btn { background: #6c757d; color: white; }
-        .battle-btn { background: var(--wm-red); color: white; } /* 오답 뿌시러 가기 버튼 */
-
-        /* 오답노트 리스트 */
-        .wrong-list { max-height: 350px; overflow-y: auto; background: white; border-radius: 15px; padding: 10px; text-align: left; margin-bottom: 20px; border: 1px solid #eee; }
-        .wrong-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 1.2rem; }
-        .wrong-item .eng-part { font-weight: bold; color: var(--wm-navy); }
-        .wrong-item .kor-part { color: var(--wm-red); }
-    </style>
-</head>
+        .review-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .review-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+    </style> </head>
+    
 <body>
 
-    <div id="progress-box"><span id="curr-num">0</span> / <span id="total-num">0</span></div>
-    <div id="time-bar-container"><div id="time-bar-fill"></div></div>
-    <div id="countdown"></div>
+    <div id="main-container">
+        <div id="progress-box"><span id="curr-num">0</span> / <span id="total-num">0</span></div>
+        <div id="time-bar-container"><div id="time-bar-fill"></div></div>
+        <div id="countdown"></div>
 
-    <div id="main-menu">
-        <div id="main-title" style="font-size: 3rem; font-weight: 900; color: var(--wm-navy); margin-bottom: 20px;">WordRex</div>
-        <div class="book-card" onclick="showSetup()">
-            <div class="cover-content">
-            </div>
-            <div class="overlay">
-                <div style="color:var(--wm-yellow); font-size: 1.5rem;">⭐⭐⭐</div>
-                <p>테스트 시작하기</p>
-                <div style="background:var(--wm-yellow); color:var(--wm-navy); padding:10px 20px; border-radius:20px; font-weight:bold;">CLICK TO START</div>
+        <div id="main-menu">
+            <h1 style="color:var(--wm-navy); font-size: 3.5rem; margin-bottom: 30px;">WordRex Master</h1>
+            <div class="slider-wrapper">
+                <button class="slide-btn prev-btn" onclick="moveSlide(-1)">❮</button>
+                <div class="book-container" id="book-slider"></div>
+                <button class="slide-btn next-btn" onclick="moveSlide(1)">❯</button>
             </div>
         </div>
-    </div>
 
-    <div id="setup-screen">
-        <h2 style="color:var(--wm-navy);">문항 수 선택</h2>
-        <button class="action-btn" onclick="initGame(5)">5 문항</button>
-        <button class="action-btn" onclick="initGame(15)">15 문항</button>
-        <button class="action-btn" onclick="initGame(30)">30 문항</button>
-    </div>
-
-    <div id="test-screen">
-        <div class="quiz-container">
-            <div class="word-eng" id="word-display">Word</div>
-            <div class="option-grid" id="option-area"></div>
-            <div style="margin-top:25px; font-weight: bold; font-size: 1.3rem;">Score: <span id="score">0</span></div>
+        <div id="setup-screen">
+            <h2 id="setup-title" style="color:var(--wm-navy);">학습 설정</h2>
+            <select id="day-picker" style="padding: 12px; font-size: 1.1rem; border-radius: 10px; width: 250px; margin-bottom: 20px;"></select>
+            <div style="margin: 20px 0;">
+                <label style="font-weight:bold;">문항 수 입력 (1~40):</label><br>
+                <input type="number" id="quest-count" style="width: 120px; padding: 12px; font-size: 1.3rem; border-radius: 10px; border: 2px solid var(--wm-navy); text-align:center; margin:15px;" value="10" min="1" max="40">
+            </div>
+            <button class="action-btn" style="background:var(--wm-yellow); color:black;" onclick="startTest()">테스트 시작!</button>
         </div>
-    </div>
 
-    <div id="result-screen">
-        <h2 style="color:#666;">TEST COMPLETE</h2>
-        <div style="font-size:5rem; font-weight:900; color:var(--wm-navy); margin-bottom: 20px;" id="final-score">0</div>
-        <button class="action-btn" onclick="location.reload()">다시 하기</button>
-        <button id="wrong-note-btn" class="action-btn wrong-go-btn" onclick="showWrongNote()">✍️ 오답노트 확인</button>
-    </div>
+        <div id="test-screen">
+            <div class="quiz-container">
+                <div id="feedback-layer">
+                    <img id="feedback-img" src="">
+                    <div id="feedback-points" style="font-size: 4rem; font-weight: 900;"></div>
+                </div>
+                <div class="word-eng" id="word-display">Word</div>
+                <div class="option-grid" id="option-area"></div>
+            </div>
+        </div>
 
-    <div id="wrong-note-screen">
-        <h2 style="color:var(--wm-navy);">틀린 단어 (<span id="wrong-count">0</span>)</h2>
-        <div class="wrong-list" id="wrong-list-container"></div>
-        <button class="action-btn battle-btn" onclick="startWrongOnlyGame()">🔥 오답 뿌시러 가기</button>
-        <button class="action-btn" onclick="location.reload()">처음으로</button>
-    </div>
+        <div id="result-screen">
+    <h2 style="color:var(--wm-navy); letter-spacing: 2px;">TEST COMPLETE</h2>
+    <div style="font-size:5rem; font-weight:900; color:var(--wm-navy); margin: 20px 0;" id="final-score">0</div>
+    
+    <button class="action-btn" onclick="location.reload()">홈으로</button>
+    <button class="secondary-btn" onclick="showWrongReview()">오답 확인하기</button>
+</div>
 
-    <div id="feedback-layer">
-        <img id="feedback-img" src="" style="width: 250px; opacity: 0.4;">
-        <div id="feedback-points"></div>
+<div id="review-screen">
+    <h2 style="color:var(--wm-navy); margin-bottom: 20px;">오답 노트</h2>
+    
+    <div class="review-container" id="review-list">
+        </div>
+
+    <div class="btn-group">
+        <button class="half-btn btn-home" onclick="location.reload()">처음으로</button>
+        <button class="half-btn btn-retry" onclick="retryWrongWords()">오답 뿌시러 가기</button>
     </div>
+</div>
 
     <audio id="snd-correct" src="correct.mp3"></audio>
     <audio id="snd-wrong" src="wrong.mp3"></audio>
 
     <script>
-        const wordData = [
-            { eng: "include", kor: "포함하다", opts: ["제외하다", "포함하다", "막다", "예측하다", "중요성"] },
-            { eng: "produce", kor: "생산하다", opts: ["소멸하다", "생산하다", "감소하다", "공유하다", "평가하다"] },
-            { eng: "belief", kor: "믿음", opts: ["불신", "믿음", "거부", "표현", "실현"] },
-            { eng: "similar", kor: "비슷한", opts: ["비슷한", "달라진", "중요한", "행동하다", "성장"] },
-            { eng: "moment", kor: "순간", opts: ["순간", "예측하다", "포함하다", "감정", "공급하다"] },
-            { eng: "emotion", kor: "감정", opts: ["감정", "공급", "표현", "발생", "차이"] },
-            { eng: "common", kor: "흔한", opts: ["희귀한", "흔한", "상급의", "부정", "실용적인"] },
-            { eng: "recover", kor: "회복하다", opts: ["회복하다", "제공하다", "이해하다", "발생하다", "실패"] },
-            { eng: "advanced", kor: "진보한", opts: ["기초적인", "진보한", "일반적인", "거부하는", "표현하는"] },
-            { eng: "indifferent", kor: "무관심한", opts: ["무관심한", "공급하는", "공유하는", "중요한", "포함하다"] },
-            { eng: "consider", kor: "고려하다", opts: ["고려하다", "무시하다", "회복하다", "제공하다", "표현하다"] },
-            { eng: "supply", kor: "공급하다", opts: ["공급하다", "거부하다", "생산하다", "성공하다", "감정"] },
-            { eng: "practical", kor: "실용적인", opts: ["실용적인", "이론적인", "감정적인", "성공적인", "무관심한"] },
-            { eng: "express", kor: "표현하다", opts: ["표현하다", "숨기다", "거부하다", "중요하다", "포함하다"] },
-            { eng: "fade", kor: "희미해지다", opts: ["희미해지다", "성공하다", "제공하다", "감정", "회복하다"] },
-            { eng: "disappear", kor: "사라지다", opts: ["나타나다", "사라지다", "발생하다", "감정", "포함하다"] },
-            { eng: "emerge", kor: "나타나다", opts: ["사라지다", "나타나다", "포함하다", "성공하다", "표현하다"] },
-            { eng: "grief", kor: "슬픔", opts: ["슬픔", "기쁨", "중요성", "실용적", "감정"] },
-            { eng: "slight", kor: "약간의", opts: ["약간의", "중대한", "성공적인", "감정", "포함하다"] },
-            { eng: "success", kor: "성공", opts: ["실패", "성공", "감정", "포함하다", "중요"] }
+        const books = [
+            { id: 1, name: "고등 베이직", img: "cover.png", stars: "⭐", desc: "고교 기초 필수 영단어" },
+            { id: 2, name: "고등 Complete", img: "cover2.png", stars: "⭐⭐", desc: "수능 1등급 완성 어휘" },
+            { id: 3, name: "수능 2000", img: "cover3.png", stars: "⭐⭐⭐", desc: "수능 빈출 필수 어휘" },
+            { id: 4, name: "하이스트", img: "cover4.png", stars: "⭐⭐⭐⭐", desc: "고난도 심화 어휘" }
         ];
 
-        let gameWords = [];
-        let currentIdx = 0;
-        let score = 0;
-        let isClickable = false;
-        let timerInterval;
-        let timeLeft = 8;
-        let wrongWords = []; 
+        // 40개 단어 전체 데이터
+        const baseWords = [
+            { eng: "include", kor: "포함하다", opts: ["포함하다", "제외하다", "생산하다", "예측하다", "막다"] },
+            { eng: "produce", kor: "생산하다", opts: ["공급하다", "생산하다", "감소하다", "거부하다", "표현하다"] },
+            { eng: "belief", kor: "믿음", opts: ["의심", "믿음", "감정", "경험", "목표"] },
+            { eng: "similar", kor: "비슷한", opts: ["비슷한", "다른", "중요한", "실용적인", "확실한"] },
+            { eng: "moment", kor: "순간", opts: ["순간", "성공", "양", "상황", "감정"] },
+            { eng: "situation", kor: "상황", opts: ["위치", "상황", "순간", "결과", "목표"] },
+            { eng: "improve", kor: "개선하다", opts: ["감소하다", "개선하다", "거부하다", "공유하다", "사라지다"] },
+            { eng: "increase", kor: "증가하다", opts: ["감소하다", "증가하다", "제공하다", "회복하다", "표현하다"] },
+            { eng: "decrease", kor: "감소하다", opts: ["증가하다", "사라지다", "감소하다", "개선하다", "공급하다"] },
+            { eng: "share", kor: "공유하다", opts: ["숨기다", "공유하다", "거부하다", "의존하다", "막다"] },
+            { eng: "emotion", kor: "감정", opts: ["감정", "경험", "믿음", "성공", "목표"] },
+            { eng: "common", kor: "흔한", opts: ["드문", "흔한", "상급의", "약간의", "확실한"] },
+            { eng: "recover", kor: "회복하다", opts: ["사라지다", "회복하다", "거부하다", "의존하다", "표현하다"] },
+            { eng: "advanced", kor: "진보한", opts: ["기초적인", "진보한", "약간의", "흔한", "무관심한"] },
+            { eng: "indifferent", kor: "무관심한", opts: ["열정적인", "무관심한", "확실한", "실용적인", "비슷한"] },
+            { eng: "reject", kor: "거절하다", opts: ["수락하다", "거절하다", "제공하다", "의존하다", "공유하다"] },
+            { eng: "refuse", kor: "거부하다", opts: ["받아들이다", "거부하다", "회복하다", "표현하다", "증가하다"] },
+            { eng: "accept", kor: "받아들이다", opts: ["거절하다", "받아들이다", "무시하다", "사라지다", "줄이다"] },
+            { eng: "experience", kor: "경험하다", opts: ["예측하다", "경험하다", "공급하다", "의존하다", "개선하다"] },
+            { eng: "certain", kor: "확실한", opts: ["불확실한", "확실한", "약간의", "흔한", "무관심한"] },
+            { eng: "consider", kor: "고려하다", opts: ["무시하다", "고려하다", "거부하다", "사라지다", "증가하다"] },
+            { eng: "supply", kor: "공급하다", opts: ["차단하다", "공급하다", "거절하다", "감소하다", "의존하다"] },
+            { eng: "provide", kor: "제공하다", opts: ["제공하다", "숨기다", "거부하다", "줄이다", "사라지다"] },
+            { eng: "practical", kor: "실용적인", opts: ["이론적인", "실용적인", "감정적인", "확실한", "약간의"] },
+            { eng: "express", kor: "표현하다", opts: ["숨기다", "표현하다", "거부하다", "의존하다", "포함하다"] },
+            { eng: "quantity", kor: "양", opts: ["질", "양", "순간", "감정", "목표"] },
+            { eng: "superior", kor: "우월한", opts: ["열등한", "우월한", "비슷한", "무관심한", "흔한"] },
+            { eng: "inferior", kor: "열등한", opts: ["우월한", "열등한", "확실한", "실용적인", "진보한"] },
+            { eng: "seek", kor: "찾다", opts: ["피하다", "찾다", "거부하다", "의존하다", "줄이다"] },
+            { eng: "aim", kor: "목표", opts: ["과정", "목표", "결과", "상황", "경험"] },
+            { eng: "fade", kor: "희미해지다", opts: ["뚜렷해지다", "희미해지다", "회복하다", "증가하다", "나타나다"] },
+            { eng: "disappear", kor: "사라지다", opts: ["나타나다", "사라지다", "증가하다", "유지하다", "개선하다"] },
+            { eng: "emerge", kor: "나타나다", opts: ["숨다", "나타나다", "사라지다", "줄이다", "의존하다"] },
+            { eng: "grief", kor: "슬픔", opts: ["기쁨", "슬픔", "성공", "목표", "확실함"] },
+            { eng: "slight", kor: "약간의", opts: ["중대한", "약간의", "확실한", "우월한", "흔한"] },
+            { eng: "success", kor: "성공", opts: ["실패", "성공", "경험", "감정", "상황"] },
+            { eng: "failure", kor: "실패", opts: ["성공", "실패", "목표", "경험", "표현"] },
+            { eng: "run into", kor: "우연히 만나다", opts: ["피하다", "우연히 만나다", "의존하다", "제공하다", "막다"] },
+            { eng: "depend on", kor: "~에 의존하다", opts: ["거부하다", "의존하다", "공유하다", "표현하다", "줄이다"] },
+            { eng: "carry out", kor: "수행하다", opts: ["중단하다", "수행하다", "거절하다", "의존하다", "사라지다"] }
+        ];
 
-        function showSetup() {
+        let currentSlideIdx = 0;
+        let gameWords = [];
+        let currentIdxQ = 0;
+        let score = 0;
+        let tInt;
+        let sliding = false;
+        let answering = false;
+        let wrongList = [];   // 이번 테스트 오답 저장
+let isWrongMode = false; // 오답만 테스트 중인지 여부
+
+
+        const slider = document.getElementById('book-slider');
+
+        function showWrongReview() {
+    const area = document.getElementById('result-screen');
+
+    if (wrongList.length === 0) {
+        area.innerHTML += "<p>오답이 없습니다 👍</p>";
+        return;
+    }
+
+    area.innerHTML = `
+        <h2>오답 확인</h2>
+
+        <div class="wrong-list">
+            ${wrongList.map((q, i) => `
+                <div class="wrong-item">
+                    <b>${i + 1}. ${q.eng}</b>
+                    <div>정답: ${q.kor}</div>
+                </div>
+            `).join('')}
+        </div>
+
+        <button onclick="goHome()">처음으로</button>
+        <button onclick="startWrongTest()">오답 뿌시러 가기</button>
+    `;
+}
+
+        function startWrongTest() {
+    if (wrongList.length === 0) {
+        alert("오답이 없습니다!");
+        return;
+    }
+
+    isWrongMode = true;
+    gameWords = [...wrongList];   // ✅ 오답만으로 테스트
+    currentIdxQ = 0;
+    score = 0;
+
+    document.getElementById('result-screen').style.display = 'none';
+    document.getElementById('test-screen').style.display = 'block';
+    document.getElementById('progress-box').style.display = 'block';
+    document.getElementById('time-bar-container').style.display = 'block';
+
+    loadQuestion();
+}
+
+        function renderSlider() {
+    slider.innerHTML = '';
+
+    books.forEach((book, i) => {
+        const card = document.createElement('div');
+        card.className = 'book-card';
+        card.dataset.index = i;
+
+        card.style.backgroundImage = `url('${book.img}')`;
+
+        card.innerHTML = `
+            <div class="overlay">
+                <div class="stars">${book.stars}</div>
+                <h3>${book.name}</h3>
+                <p>${book.desc}</p>
+                <div class="start-badge">START</div>
+            </div>
+        `;
+
+        card.onclick = () => {
+            if (i === (currentSlideIdx - 1 + books.length) % books.length) moveSlide(-1);
+            else if (i === (currentSlideIdx + 1) % books.length) moveSlide(1);
+            else if (i === currentSlideIdx) showSetup(book.name);
+        };
+
+        slider.appendChild(card);
+    });
+
+    updateSlideClasses();
+}
+
+        function moveSlide(dir) {
+    currentSlideIdx = (currentSlideIdx + dir + books.length) % books.length;
+    updateSlideClasses();
+}
+
+        function showSetup(title) {
             document.getElementById('main-menu').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'block';
+            document.getElementById('setup-title').innerText = title + " 설정";
+            const picker = document.getElementById('day-picker');
+            picker.innerHTML = '';
+            for(let i=1; i<=30; i++) {
+                let opt = document.createElement('option');
+                opt.value = i; opt.innerText = `Day ${i}`;
+                picker.appendChild(opt);
+            }
         }
 
-        // 게임 초기화 공통 로직
-        function initGame(count) {
-            gameWords = [...wordData].sort(() => Math.random() - 0.5).slice(0, count);
-            resetAndStart();
-        }
+        function startTest() {
+    const count = parseInt(document.getElementById('quest-count').value);
+    gameWords = [...baseWords].sort(() => Math.random() - 0.5).slice(0, count);
 
-        // 오답으로만 게임 시작
-        function startWrongOnlyGame() {
-            if(wrongWords.length === 0) return;
-            gameWords = [...wrongWords].sort(() => Math.random() - 0.5);
-            document.getElementById('wrong-note-screen').style.display = 'none';
-            resetAndStart();
-        }
+    wrongList = [];        // ✅ 오답 초기화
+    isWrongMode = false;   // ✅ 일반 테스트 모드
 
-        function resetAndStart() {
-            currentIdx = 0;
-            score = 0;
-            wrongWords = []; 
-            document.getElementById('score').innerText = score;
-            document.getElementById('total-num').innerText = gameWords.length;
-            document.getElementById('setup-screen').style.display = 'none';
-            startCountdown();
-        }
+    document.getElementById('setup-screen').style.display = 'none';
+    score = 0; currentIdxQ = 0;
+    document.getElementById('total-num').innerText = gameWords.length;
+    startCountdown();
+}
 
         function startCountdown() {
-            const countEl = document.getElementById('countdown');
-            countEl.style.display = 'block';
-            const sequence = ["3", "2", "1", "GO!"];
-            let i = 0;
-            const timer = setInterval(() => {
-                if (i < sequence.length) {
-                    countEl.innerText = sequence[i++];
-                } else {
-                    clearInterval(timer);
-                    countEl.style.display = 'none';
-                    document.getElementById('progress-box').style.display = 'block';
-                    document.getElementById('test-screen').style.display = 'block';
-                    document.getElementById('time-bar-container').style.display = 'block';
-                    loadQuestion();
-                }
+            const el = document.getElementById('countdown');
+            el.style.display = 'block';
+            let i = 3;
+            const t = setInterval(() => {
+                el.innerText = i > 0 ? i : "GO!";
+                if(i < 0) { clearInterval(t); el.style.display='none'; runQuiz(); }
+                i--;
             }, 800);
         }
 
+        function updateSlideClasses() {
+    const cards = document.querySelectorAll('.book-card');
+
+    cards.forEach(card => {
+        card.classList.remove('active', 'prev', 'next');
+        const i = Number(card.dataset.index);
+
+        if (i === currentSlideIdx) {
+            card.classList.add('active');
+        } else if (i === (currentSlideIdx - 1 + books.length) % books.length) {
+            card.classList.add('prev');
+        } else if (i === (currentSlideIdx + 1) % books.length) {
+            card.classList.add('next');
+        }
+    });
+}
+
+        function runQuiz() {
+            document.getElementById('progress-box').style.display = 'block';
+            document.getElementById('test-screen').style.display = 'block';
+            document.getElementById('time-bar-container').style.display = 'block';
+            loadQuestion();
+        }
+
         function loadQuestion() {
-            if (currentIdx >= gameWords.length) {
-                endGame();
-                return;
-            }
-            isClickable = true;
-            timeLeft = 8;
-            updateTimeBar();
-            document.getElementById('curr-num').innerText = currentIdx + 1;
-            const q = gameWords[currentIdx];
-            document.getElementById('word-display').innerText = q.eng;
+    if(currentIdxQ >= gameWords.length) { endGame(); return; }
 
-            const optArea = document.getElementById('option-area');
-            optArea.innerHTML = "";
-            [...q.opts].sort(() => Math.random() - 0.5).forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'opt-btn';
-                btn.innerText = opt;
-                btn.onclick = () => checkAnswer(opt, btn);
-                optArea.appendChild(btn);
-            });
+    answering = false;   // ✅ 여기 중요
 
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft -= 0.1;
-                updateTimeBar();
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    checkAnswer("TIME_OUT", null);
-                }
+    const q = gameWords[currentIdxQ];
+    document.getElementById('curr-num').innerText = currentIdxQ + 1;
+    document.getElementById('word-display').innerText = q.eng;
+
+    const area = document.getElementById('option-area');
+    area.innerHTML = '';
+
+    [...q.opts].sort(() => Math.random() - 0.5).forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'opt-btn';
+        b.innerText = o;
+        b.onclick = () => check(o, b);
+        area.appendChild(b);
+    });
+
+    resetTimer();
+}
+
+function check(o, b) {
+    if (answering) return;
+    answering = true;
+
+    clearInterval(tInt);
+
+    document.querySelectorAll('.opt-btn').forEach(btn => {
+        btn.disabled = true;
+        btn.style.pointerEvents = 'none';
+    });
+
+    const q = gameWords[currentIdxQ];
+    const layer = document.getElementById('feedback-layer');
+    const img = document.getElementById('feedback-img');
+    const pts = document.getElementById('feedback-points');
+
+    if (o === q.kor) {
+        score += 100;
+        img.src = "good.png";
+        pts.innerText = "+100";
+        pts.style.color = "var(--wm-green)";
+        document.getElementById('snd-correct').play().catch(()=>{});
+    } else {
+        score -= 50;
+        img.src = "똥.png";
+        pts.innerText = "-50";
+        pts.style.color = "var(--wm-red)";
+        document.getElementById('snd-wrong').play().catch(()=>{});
+        if (b) b.style.borderColor = "var(--wm-red)";
+        wrongList.push(q);   // ✅ 오답 저장
+    }
+
+    layer.style.opacity = 1;
+
+    setTimeout(() => {
+        layer.style.opacity = 0;
+        currentIdxQ++;
+        loadQuestion();
+    }, 1000);
+}
+
+
+        function resetTimer() {
+            clearInterval(tInt);
+            let left = 8;
+            tInt = setInterval(() => {
+                left -= 0.1;
+                document.getElementById('time-bar-fill').style.height = ((8-left)/8*100) + "%";
+                if(left <= 0) check("TIMEOUT", null);
             }, 100);
-        }
-
-        function updateTimeBar() {
-            const fill = document.getElementById('time-bar-fill');
-            fill.style.height = (timeLeft / 8 * 100) + "%";
-        }
-
-        function checkAnswer(input, btn) {
-            if (!isClickable) return;
-            const currentWord = gameWords[currentIdx];
-            const correct = currentWord.kor;
-            const layer = document.getElementById('feedback-layer');
-            const img = document.getElementById('feedback-img');
-            const pts = document.getElementById('feedback-points');
-
-            if (input === correct) {
-                isClickable = false;
-                clearInterval(timerInterval);
-                score += 100;
-                document.getElementById('snd-correct').play().catch(()=>{});
-                img.src = "good.png";
-                pts.innerText = "+100";
-                pts.style.color = "var(--wm-green)";
-                layer.style.opacity = "1";
-                setTimeout(() => { 
-                    layer.style.opacity = "0";
-                    currentIdx++; 
-                    loadQuestion(); 
-                }, 800);
-            } else {
-                isClickable = false;
-                score -= 50;
-                if (!wrongWords.find(w => w.eng === currentWord.eng)) {
-                    wrongWords.push(currentWord);
-                }
-                document.getElementById('snd-wrong').play().catch(()=>{});
-                img.src = "똥.png";
-                pts.innerText = "-50";
-                pts.style.color = "var(--wm-red)";
-                if (btn) btn.disabled = true;
-                layer.style.opacity = "1";
-                setTimeout(() => { 
-                    layer.style.opacity = "0"; 
-                    if (input === "TIME_OUT" || true) { // 틀려도 다음 문제로 넘어가게 설정 (오답 뿌시기 효율 위해)
-                        currentIdx++;
-                        loadQuestion();
-                    }
-                }, 800);
-            }
-            document.getElementById('score').innerText = score;
         }
 
         function endGame() {
@@ -292,23 +485,9 @@
             document.getElementById('progress-box').style.display = 'none';
             document.getElementById('result-screen').style.display = 'block';
             document.getElementById('final-score').innerText = score;
-            const wrongBtn = document.getElementById('wrong-note-btn');
-            wrongBtn.style.display = wrongWords.length === 0 ? 'none' : 'block';
         }
 
-        function showWrongNote() {
-            document.getElementById('result-screen').style.display = 'none';
-            document.getElementById('wrong-note-screen').style.display = 'block';
-            document.getElementById('wrong-count').innerText = wrongWords.length;
-            const container = document.getElementById('wrong-list-container');
-            container.innerHTML = "";
-            wrongWords.forEach(w => {
-                const item = document.createElement('div');
-                item.className = 'wrong-item';
-                item.innerHTML = `<span class="eng-part">${w.eng}</span><span class="kor-part">${w.kor}</span>`;
-                container.appendChild(item);
-            });
-        }
+        renderSlider();
     </script>
 </body>
 </html>
