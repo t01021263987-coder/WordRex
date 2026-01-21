@@ -7,23 +7,36 @@
         :root { --wm-yellow: #FFD400; --wm-navy: #004680; --wm-red: #ff4d4d; --wm-green: #28a745; --wm-blue: #2196F3; }
         body { margin: 0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; background: #f4f4f4; font-family: 'Pretendard', sans-serif; }
 
-        /* 타이틀 디자인 */
-        #main-title { font-size: 3rem; font-weight: 900; color: var(--wm-navy); margin-bottom: 20px; letter-spacing: -1px; }
-
-        /* 상단 진행률 (초기 숨김) */
+        /* 상단 진행률 */
         #progress-box { position: fixed; top: 20px; left: 20px; font-size: 1.5rem; font-weight: bold; color: var(--wm-navy); z-index: 50; display: none; }
 
-        /* 타임 바 (위에서 아래로) */
+        /* 타임 바 */
         #time-bar-container { position: fixed; right: 30px; top: 50%; transform: translateY(-50%); width: 20px; height: 300px; background: #ddd; border-radius: 10px; overflow: hidden; display: none; }
         #time-bar-fill { width: 100%; height: 100%; background: var(--wm-red); position: absolute; top: 0; }
 
         /* 레이아웃 제어 */
-        #setup-screen, #test-screen, #result-screen, #ranking-screen { width: 100%; max-width: 500px; text-align: center; display: none; }
+        #setup-screen, #test-screen, #result-screen, #ranking-screen, #wrong-note-screen { width: 100%; max-width: 500px; text-align: center; display: none; }
         #main-menu { display: block; text-align: center; }
 
-        /* 단어장 표지 오버레이 */
-        .book-card { width: 280px; height: 400px; margin: auto; position: relative; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); background: url('cover.png') center/cover; cursor: pointer; }
-        .book-card .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 70, 128, 0.92); display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; color: white; padding: 20px; box-sizing: border-box; }
+        /* 단어장 표지 (버그 수정: 배경색 추가 및 디자인 보강) */
+        .book-card { 
+            width: 280px; height: 400px; margin: auto; position: relative; border-radius: 15px; 
+            overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            background: var(--wm-navy); /* 기본 배경색 */
+            background-image: url('cover.png'); 
+            background-size: cover; background-position: center;
+            cursor: pointer; 
+        }
+        .book-card .cover-content {
+            position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white;
+        }
+        .book-card .overlay { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s; 
+            color: white; padding: 20px; box-sizing: border-box; z-index: 2;
+        }
         .book-card:hover .overlay { opacity: 1; }
 
         /* 퀴즈 UI */
@@ -33,18 +46,25 @@
         .opt-btn { padding: 15px; border: none; background: #f0f0f0; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: bold; transition: 0.2s; }
         .opt-btn:disabled { opacity: 0.3; }
 
-        /* 카운트다운 숫자 */
+        /* 카운트다운 */
         #countdown { position: fixed; display: none; font-size: 10rem; color: var(--wm-yellow); font-weight: 900; text-shadow: 8px 8px 0px var(--wm-navy), -4px -4px 0px var(--wm-navy); z-index: 200; }
 
         /* 피드백 레이어 */
         #feedback-layer { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; opacity: 0; z-index: 100; text-align: center; }
-        #feedback-img { width: 250px; opacity: 0.4; }
-        #feedback-points { font-size: 4.5rem; font-weight: 900; margin-top: -20px; }
+        #feedback-points { font-size: 4.5rem; font-weight: 900; }
 
         /* 버튼류 */
         .action-btn { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 12px; font-size: 1.3rem; cursor: pointer; background: white; color: var(--wm-navy); font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.1); transition: 0.2s; }
         .action-btn:hover { background: var(--wm-yellow); }
-        .rank-go-btn { background: var(--wm-blue); color: white; margin-top: 10px; }
+        .rank-go-btn { background: var(--wm-blue); color: white; }
+        .wrong-go-btn { background: #6c757d; color: white; }
+        .battle-btn { background: var(--wm-red); color: white; } /* 오답 뿌시러 가기 버튼 */
+
+        /* 오답노트 리스트 */
+        .wrong-list { max-height: 350px; overflow-y: auto; background: white; border-radius: 15px; padding: 10px; text-align: left; margin-bottom: 20px; border: 1px solid #eee; }
+        .wrong-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; font-size: 1.2rem; }
+        .wrong-item .eng-part { font-weight: bold; color: var(--wm-navy); }
+        .wrong-item .kor-part { color: var(--wm-red); }
     </style>
 </head>
 <body>
@@ -54,18 +74,20 @@
     <div id="countdown"></div>
 
     <div id="main-menu">
-        <div id="main-title">WordRex</div>
+        <div id="main-title" style="font-size: 3rem; font-weight: 900; color: var(--wm-navy); margin-bottom: 20px;">WordRex</div>
         <div class="book-card" onclick="showSetup()">
+            <div class="cover-content">
+            </div>
             <div class="overlay">
                 <div style="color:var(--wm-yellow); font-size: 1.5rem;">⭐⭐⭐</div>
-                <p>고등 기초 필수 영단어 1200</p>
-                <div style="margin-top:20px; background:var(--wm-yellow); color:var(--wm-navy); padding:10px 20px; border-radius:20px; font-weight:bold;">CLICK TO START</div>
+                <p>테스트 시작하기</p>
+                <div style="background:var(--wm-yellow); color:var(--wm-navy); padding:10px 20px; border-radius:20px; font-weight:bold;">CLICK TO START</div>
             </div>
         </div>
     </div>
 
     <div id="setup-screen">
-        <h2 style="color:var(--wm-navy);">테스트 문항 수 선택</h2>
+        <h2 style="color:var(--wm-navy);">문항 수 선택</h2>
         <button class="action-btn" onclick="initGame(5)">5 문항</button>
         <button class="action-btn" onclick="initGame(15)">15 문항</button>
         <button class="action-btn" onclick="initGame(30)">30 문항</button>
@@ -83,11 +105,18 @@
         <h2 style="color:#666;">TEST COMPLETE</h2>
         <div style="font-size:5rem; font-weight:900; color:var(--wm-navy); margin-bottom: 20px;" id="final-score">0</div>
         <button class="action-btn" onclick="location.reload()">다시 하기</button>
-        <button class="action-btn rank-go-btn" onclick="showRanking()">🏆 랭킹 확인하기</button>
+        <button id="wrong-note-btn" class="action-btn wrong-go-btn" onclick="showWrongNote()">✍️ 오답노트 확인</button>
+    </div>
+
+    <div id="wrong-note-screen">
+        <h2 style="color:var(--wm-navy);">틀린 단어 (<span id="wrong-count">0</span>)</h2>
+        <div class="wrong-list" id="wrong-list-container"></div>
+        <button class="action-btn battle-btn" onclick="startWrongOnlyGame()">🔥 오답 뿌시러 가기</button>
+        <button class="action-btn" onclick="location.reload()">처음으로</button>
     </div>
 
     <div id="feedback-layer">
-        <img id="feedback-img" src="">
+        <img id="feedback-img" src="" style="width: 250px; opacity: 0.4;">
         <div id="feedback-points"></div>
     </div>
 
@@ -124,14 +153,32 @@
         let isClickable = false;
         let timerInterval;
         let timeLeft = 8;
+        let wrongWords = []; 
 
         function showSetup() {
             document.getElementById('main-menu').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'block';
         }
 
+        // 게임 초기화 공통 로직
         function initGame(count) {
             gameWords = [...wordData].sort(() => Math.random() - 0.5).slice(0, count);
+            resetAndStart();
+        }
+
+        // 오답으로만 게임 시작
+        function startWrongOnlyGame() {
+            if(wrongWords.length === 0) return;
+            gameWords = [...wrongWords].sort(() => Math.random() - 0.5);
+            document.getElementById('wrong-note-screen').style.display = 'none';
+            resetAndStart();
+        }
+
+        function resetAndStart() {
+            currentIdx = 0;
+            score = 0;
+            wrongWords = []; 
+            document.getElementById('score').innerText = score;
             document.getElementById('total-num').innerText = gameWords.length;
             document.getElementById('setup-screen').style.display = 'none';
             startCountdown();
@@ -142,11 +189,9 @@
             countEl.style.display = 'block';
             const sequence = ["3", "2", "1", "GO!"];
             let i = 0;
-
             const timer = setInterval(() => {
                 if (i < sequence.length) {
-                    countEl.innerText = sequence[i];
-                    i++;
+                    countEl.innerText = sequence[i++];
                 } else {
                     clearInterval(timer);
                     countEl.style.display = 'none';
@@ -166,7 +211,6 @@
             isClickable = true;
             timeLeft = 8;
             updateTimeBar();
-            
             document.getElementById('curr-num').innerText = currentIdx + 1;
             const q = gameWords[currentIdx];
             document.getElementById('word-display').innerText = q.eng;
@@ -199,21 +243,20 @@
 
         function checkAnswer(input, btn) {
             if (!isClickable) return;
-
-            const correct = gameWords[currentIdx].kor;
+            const currentWord = gameWords[currentIdx];
+            const correct = currentWord.kor;
             const layer = document.getElementById('feedback-layer');
             const img = document.getElementById('feedback-img');
             const pts = document.getElementById('feedback-points');
 
             if (input === correct) {
-                isClickable = false; // 정답 시 클릭 잠금
+                isClickable = false;
                 clearInterval(timerInterval);
                 score += 100;
-                document.getElementById('snd-correct').play();
+                document.getElementById('snd-correct').play().catch(()=>{});
                 img.src = "good.png";
                 pts.innerText = "+100";
                 pts.style.color = "var(--wm-green)";
-                
                 layer.style.opacity = "1";
                 setTimeout(() => { 
                     layer.style.opacity = "0";
@@ -221,24 +264,22 @@
                     loadQuestion(); 
                 }, 800);
             } else {
-                // 오답 시 딜레이 로직 추가 (중복 클릭 방지)
                 isClickable = false;
                 score -= 50;
-                document.getElementById('snd-wrong').play();
+                if (!wrongWords.find(w => w.eng === currentWord.eng)) {
+                    wrongWords.push(currentWord);
+                }
+                document.getElementById('snd-wrong').play().catch(()=>{});
                 img.src = "똥.png";
                 pts.innerText = "-50";
                 pts.style.color = "var(--wm-red)";
-                
                 if (btn) btn.disabled = true;
-
                 layer.style.opacity = "1";
                 setTimeout(() => { 
                     layer.style.opacity = "0"; 
-                    if (input === "TIME_OUT") {
+                    if (input === "TIME_OUT" || true) { // 틀려도 다음 문제로 넘어가게 설정 (오답 뿌시기 효율 위해)
                         currentIdx++;
                         loadQuestion();
-                    } else {
-                        isClickable = true; // 틀린 후 잠시 뒤 다시 클릭 가능하게 설정
                     }
                 }, 800);
             }
@@ -251,11 +292,22 @@
             document.getElementById('progress-box').style.display = 'none';
             document.getElementById('result-screen').style.display = 'block';
             document.getElementById('final-score').innerText = score;
+            const wrongBtn = document.getElementById('wrong-note-btn');
+            wrongBtn.style.display = wrongWords.length === 0 ? 'none' : 'block';
         }
 
-        function showRanking() {
-            alert("총점 " + score + "점으로 랭킹 8위에 등극하셨습니다! (가상 데이터)");
-            location.reload();
+        function showWrongNote() {
+            document.getElementById('result-screen').style.display = 'none';
+            document.getElementById('wrong-note-screen').style.display = 'block';
+            document.getElementById('wrong-count').innerText = wrongWords.length;
+            const container = document.getElementById('wrong-list-container');
+            container.innerHTML = "";
+            wrongWords.forEach(w => {
+                const item = document.createElement('div');
+                item.className = 'wrong-item';
+                item.innerHTML = `<span class="eng-part">${w.eng}</span><span class="kor-part">${w.kor}</span>`;
+                container.appendChild(item);
+            });
         }
     </script>
 </body>
